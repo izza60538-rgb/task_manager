@@ -106,4 +106,39 @@ class TaskController extends Controller
         return redirect()->route('tasks.index')
         ->with('success', 'Task Deleted Successfully');
     }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Soft Delete Methods
+    |--------------------------------------------------------------------------
+    */
+
+    public function trash()
+    {
+        $tasks = Task::onlyTrashed()->get();
+
+        return view('tasks.trash', compact('tasks'));
+    }
+
+    public function restore($id)
+    {
+        Task::withTrashed()
+        ->findOrFail($id)
+        ->restore();
+
+        return redirect()
+        ->route('tasks.trash')
+        ->with('success', 'Task Restored Successfully');
+    }
+
+    public function forceDelete($id)
+    {
+        Task::withTrashed()
+        ->findOrFail($id)
+        ->forceDelete();
+
+        return redirect()
+        ->route('tasks.trash')
+        ->with('success', 'Task Permanently Deleted');
+    }
 }

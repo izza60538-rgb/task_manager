@@ -63,9 +63,23 @@ Route::get('/notify', function () {
 });
 
 Route::get('/error-test', function () {
- try {
+   try {
     DB::table('non_existing_table')->get();
 } catch (\Exception $e) {
     return "Something went wrong!";
 }
+});
+
+Route::middleware('auth')->group(function () {
+
+    Route::resource('tasks', TaskController::class);
+
+    Route::get('/tasks-trash', [TaskController::class, 'trash'])
+    ->name('tasks.trash');
+
+    Route::post('/tasks/{id}/restore', [TaskController::class, 'restore'])
+    ->name('tasks.restore');
+
+    Route::delete('/tasks/{id}/force-delete', [TaskController::class, 'forceDelete'])
+    ->name('tasks.forceDelete');
 });
