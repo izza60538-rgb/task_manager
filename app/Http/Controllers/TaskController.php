@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use App\Events\TaskCreated;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Cache;
+use App\Notifications\TaskCreatedNotification;
 
 class TaskController extends Controller
 {
@@ -13,9 +16,15 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $tasks = Task::where('user_id', auth()->id())
-        ->latest()
-        ->paginate(5);
+        $tasks = Cache::remember(
+            'tasks_' . auth()->id(),
+            60,
+            function () {
+                return Task::where('user_id', auth()->id())
+                ->latest()
+                ->paginate(5);
+            }
+        );
 
         return view('tasks.index', compact('tasks'));
     }
@@ -54,7 +63,7 @@ class TaskController extends Controller
             'attachment' => $filePath
         ]);
         event(new TaskCreated($task));
-
+        Cache::forget('tasks_' . auth()->id());
         return redirect()->route('tasks.index')
         ->with('success', 'Task Created Successfully');
     }
@@ -64,6 +73,7 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
+        $this->authorize('view', $task);
         return view('tasks.show', compact('task'));
     }
 
@@ -72,6 +82,7 @@ class TaskController extends Controller
      */
     public function edit(Task $task)
     {
+        $this->authorize('update', $task);
         return view('tasks.edit', compact('task'));
     }
 
@@ -80,6 +91,7 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
+        $this->authorize('update', $task);
         $request->validate([
             'title' => 'required|max:255',
             'description' => 'required',
@@ -101,6 +113,7 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
+        $this->authorize('delete', $task);
         $task->delete();
 
         return redirect()->route('tasks.index')
